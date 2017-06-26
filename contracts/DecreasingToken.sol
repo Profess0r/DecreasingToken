@@ -1,5 +1,6 @@
 pragma solidity ^0.4.4;
-import './TokenEmission.sol';
+import './Object.sol';
+import './ERC20.sol';
 
 contract DecreasingToken is Object, ERC20 {
         
