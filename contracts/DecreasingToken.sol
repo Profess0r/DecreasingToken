@@ -14,6 +14,8 @@ contract DecreasingToken is Object, ERC20 {
     /* Fixed point position */
     uint8 public decimals;
     
+    /* Period when token decrease in days. When elapsed token amount on balance become 0 */
+    uint public decreasePeriod;
 
     struct Balance {
         uint amount;
@@ -30,8 +32,8 @@ contract DecreasingToken is Object, ERC20 {
      * @return amount of tokens on balance
      */
     function balanceOf(address _owner) constant returns (uint256) { 
-        uint pastDays = (block.timestamp - balances[_owner].lastUpdateTime) / (60 * 60 * 24);
-        uint realAmount = balances[_owner].amount * (100 - pastDays) / 100;
+        uint pastDays = (now - balances[_owner].lastUpdateTime) / 1 days;
+        uint realAmount = balances[_owner].amount * (decreasePeriod - pastDays) / decreasePeriod;
         return realAmount; 
     }
  
@@ -45,12 +47,13 @@ contract DecreasingToken is Object, ERC20 {
     { return allowances[_owner][_spender]; }
 
     /* Token constructor */
-    function DecreasingToken(string _name, string _symbol, uint8 _decimals, uint _count) {
+    function DecreasingToken(string _name, string _symbol, uint8 _decimals, uint _count, uint _decreasePeriod) {
         name        = _name;
         symbol      = _symbol;
         decimals    = _decimals;
         totalSupply = _count;
         balances[msg.sender].amount = _count;
+        decreasePeriod = _decreasePeriod;
     }
  
     /**
@@ -61,17 +64,25 @@ contract DecreasingToken is Object, ERC20 {
      * @return `true` when transfer done
      */
     function transfer(address _to, uint _value) returns (bool) {
-        uint senderPastDays = (block.timestamp - balances[msg.sender].lastUpdateTime) / (60 * 60 * 24);
-        uint senderRealAmount = balances[msg.sender].amount * (100 - senderPastDays) / 100;
-        
+        if (msg.sender == owner) {
+            uint senderRealAmount = balances[msg.sender].amount;
+        } else {
+            uint senderPastDays = (now - balances[msg.sender].lastUpdateTime) / 1 days;
+            senderRealAmount = balances[msg.sender].amount * (decreasePeriod - senderPastDays) / decreasePeriod;
+        }
+
         if (senderRealAmount >= _value) {
-            uint receiverPastDays = (block.timestamp - balances[_to].lastUpdateTime) / (60 * 60 * 24);
-            uint receiverRealAmount = balances[_to].amount * (100 - receiverPastDays) / 100;
+            if(_to == owner) {
+                uint receiverRealAmount = balances[_to].amount;
+            } else {
+                uint receiverPastDays = (now - balances[_to].lastUpdateTime) / 1 days;
+                receiverRealAmount = balances[_to].amount * (decreasePeriod - receiverPastDays) / decreasePeriod;
+            }
             
             balances[msg.sender].amount = senderRealAmount - _value;
-            balances[msg.sender].lastUpdateTime = block.timestamp;
+            balances[msg.sender].lastUpdateTime = now;
             balances[_to].amount = receiverRealAmount + _value;
-            balances[_to].lastUpdateTime = block.timestamp;
+            balances[_to].lastUpdateTime = now;
             
             Transfer(msg.sender, _to, _value);
             return true;
@@ -88,8 +99,12 @@ contract DecreasingToken is Object, ERC20 {
      * @return `true` when transfer is done
      */
     function transferFrom(address _from, address _to, uint256 _value) returns (bool) {
-        uint senderPastDays = (block.timestamp - balances[_from].lastUpdateTime) / (60 * 60 * 24);
-        uint senderRealAmount = balances[_from].amount * (100 - senderPastDays) / 100;
+        if (_from == owner) {
+            uint senderRealAmount = balances[_from].amount;
+        } else {
+            uint senderPastDays = (now - balances[_from].lastUpdateTime) / 1 days;
+            senderRealAmount = balances[_from].amount * (decreasePeriod - senderPastDays) / decreasePeriod;
+        }
         
         var avail = allowances[_from][msg.sender]
                   > senderRealAmount ? senderRealAmount
@@ -98,14 +113,18 @@ contract DecreasingToken is Object, ERC20 {
         if (avail >= _value) {
             allowances[_from][msg.sender] -= _value;
             
-            uint receiverPastDays = (block.timestamp - balances[_to].lastUpdateTime) / (60 * 60 * 24);
-            uint receiverRealAmount = balances[_to].amount * (100 - receiverPastDays) / 100;
+            if (_to == owner) {
+                uint receiverRealAmount = balances[_to].amount;
+            } else {
+                uint receiverPastDays = (now - balances[_to].lastUpdateTime) / 1 days;
+                receiverRealAmount = balances[_to].amount * (decreasePeriod - receiverPastDays) / decreasePeriod;
+            }
             
             balances[_from].amount = senderRealAmount - _value;
-            balances[_from].lastUpdateTime = block.timestamp;
+            balances[_from].lastUpdateTime = now;
             
             balances[_to].amount = receiverRealAmount + _value;
-            balances[_to].lastUpdateTime = block.timestamp;
+            balances[_to].lastUpdateTime = now;
 
             Transfer(_from, _to, _value);
             return true;
