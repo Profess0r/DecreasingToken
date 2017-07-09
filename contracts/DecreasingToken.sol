@@ -68,6 +68,9 @@ contract DecreasingToken is Object, ERC20 {
             uint senderRealAmount = balances[msg.sender].amount;
         } else {
             uint senderPastDays = (now - balances[msg.sender].lastUpdateTime) / 1 days;
+            if (senderPastDays > decreasePeriod) {
+                senderPastDays = decreasePeriod;
+            }
             senderRealAmount = balances[msg.sender].amount * (decreasePeriod - senderPastDays) / decreasePeriod;
         }
 
@@ -76,6 +79,9 @@ contract DecreasingToken is Object, ERC20 {
                 uint receiverRealAmount = balances[_to].amount;
             } else {
                 uint receiverPastDays = (now - balances[_to].lastUpdateTime) / 1 days;
+                if (receiverPastDays > decreasePeriod) {
+                    receiverPastDays = decreasePeriod;
+                }
                 receiverRealAmount = balances[_to].amount * (decreasePeriod - receiverPastDays) / decreasePeriod;
             }
             
@@ -103,6 +109,9 @@ contract DecreasingToken is Object, ERC20 {
             uint senderRealAmount = balances[_from].amount;
         } else {
             uint senderPastDays = (now - balances[_from].lastUpdateTime) / 1 days;
+            if (senderPastDays > decreasePeriod) {
+                senderPastDays = decreasePeriod;
+            }
             senderRealAmount = balances[_from].amount * (decreasePeriod - senderPastDays) / decreasePeriod;
         }
         
@@ -117,6 +126,9 @@ contract DecreasingToken is Object, ERC20 {
                 uint receiverRealAmount = balances[_to].amount;
             } else {
                 uint receiverPastDays = (now - balances[_to].lastUpdateTime) / 1 days;
+                if (receiverPastDays > decreasePeriod) {
+                    receiverPastDays = decreasePeriod;
+                }
                 receiverRealAmount = balances[_to].amount * (decreasePeriod - receiverPastDays) / decreasePeriod;
             }
             
@@ -149,5 +161,6 @@ contract DecreasingToken is Object, ERC20 {
      */
     function unapprove(address _spender)
     { allowances[msg.sender][_spender] = 0; }
+    
     
 }
